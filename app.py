@@ -1,74 +1,77 @@
-import os
-from flask import Flask, request, render_template, redirect
-from flask_sqlalchemy import SQLAlchemy
-from werkzeug.utils import secure_filename
+import streamlit as st
+import csv
+import difflib
 
-app = Flask(__name__)
+DATA_FILE = "waste_data.csv"
 
-# 1. Configuration (Must come before db initialization)
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///waste_data.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# Default category mappings
+DEFAULT_MAPPING = {
+    "paper": "newspaper",
+    "plastic": "plastic bottle",
+    "glass": "glass bottle",
+    "metal": "aluminum can"
+}
 
-# 2. Initialize Database
-db = SQLAlchemy(app)
+# Load dataset
+@st.cache_data
+def load_data():
+    waste_db = {}
+    with open(DATA_FILE, newline='', encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            name = row["Waste_Item"].strip().lower()
+            waste_db[name] = row
+    return waste_db
 
-# Create upload folder if it doesn't exist
-if not os.path.exists(app.config['UPLOAD_FOLDER']):
-    os.makedirs(app.config['UPLOAD_FOLDER'])
+waste_db = load_data()
+waste_items = list(waste_db.keys())
 
-# 3. Database Model
-class WasteItem(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    category = db.Column(db.String(50), nullable=False)
-    image_path = db.Column(db.String(200), nullable=False)
 
-# Create the database file
-with app.app_context():
-    db.create_all()
+def find_suggestion(user_input):
+    matches = difflib.get_close_matches(user_input, waste_items, n=1, cutoff=0.4)
+    return matches[0] if matches else None
 
-# 4. Simple HTML Template
-HTML_TEMPLATE = '''
-<!doctype html>
-<html>
-<head><title>Waste Collector</title></head>
-<body style="font-family: sans-serif; padding: 20px;">
-  <h2>Waste Category Data Collector</h2>
-  <form method="post" enctype="multipart/form-data">
-    <input type="file" name="file" required><br><br>
-    <label>Select Category:</label><br>
-    <select name="category" style="padding: 5px;">
-      <option value="Plastic">Plastic</option>
-      <option value="Paper">Paper</option>
-      <option value="Metal">Metal</option>
-      <option value="Organic">Organic</option>
-      <option value="Glass">Glass</option>
-    </select><br><br>
-    <button type="submit" style="padding: 10px 20px; cursor: pointer;">Upload & Save</button>
-  </form>
-</body>
-</html>
-'''
 
-@app.route('/', methods=['GET', 'POST'])
-def upload_file():
-    if request.method == 'POST':
-        file = request.files['file']
-        category = request.form['category']
-        
-        if file:
-            filename = secure_filename(file.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
-            
-            # Save metadata to SQLite
-            new_item = WasteItem(category=category, image_path=filepath)
-            db.session.add(new_item)
-            db.session.commit()
-            
-            return f"<h3>Success!</h3><p>Uploaded as <b>{category}</b>. <a href='/'>Upload another?</a></p>"
-            
-    return HTML_TEMPLATE
+# ------------------ UI ------------------
+st.set_page_config(page_title="EcoVision Waste Finder", page_icon="♻️")
 
-if __name__ == '__main__':
-    app.run(debug=True)
+st.title("♻️ EcoVision Waste Finder")
+
+user_input = st.text_input("Enter waste item", "")
+
+if user_input:
+    user_input = user_input.lower().strip()
+
+    # 1. Direct mapping
+    if user_input in DEFAULT_MAPPING:
+        user_input = DEFAULT_MAPPING[user_input]
+
+    # 2. Direct match
+    if user_input in waste_db:
+        item = waste_db[user_input]
+
+        st.success("Waste item found!")
+        st.write("### Result")
+        st.write(f"**Waste Item:** {item['Waste_Item']}")
+        st.write(f"**Category:** {item['Category']}")
+        st.write(f"**Weight (g):** {item.get('Weight_g', 'N/A')}")
+        st.write(f"**Carbon Score:** {item.get('Carbon_Score', 'N/A')}")
+        st.write(f"**Disposal Type:** {item.get('Disposal_Type', 'N/A')}")
+        st.write(f"**Recyclable:** {item.get('Recyclable', 'N/A')}")
+
+    else:
+        suggestion = find_suggestion(user_input)
+
+        if suggestion:
+            st.warning(f"Did you mean **{suggestion}**?")
+            if st.button("Yes, show result"):
+                item = waste_db[suggestion]
+                st.write("### Result")
+                st.write(f"**Waste Item:** {item['Waste_Item']}")
+                st.write(f"**Category:** {item['Category']}")
+                st.write(f"**Weight (g):** {item.get('Weight_g', 'N/A')}")
+                st.write(f"**Carbon Score:** {item.get('Carbon_Score', 'N/A')}")
+                st.write(f"**Disposal Type:** {item.get('Disposal_Type', 'N/A')}")
+                st.write(f"**Recyclable:** {item.get('Recyclable', 'N/A')}")
+        else:
+            st.error("Item not found in database.")
