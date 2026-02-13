@@ -1,0 +1,16 @@
+Waste_ID,Waste_Item,Category,Weight_grams,Carbon_Impact_Score,Disposal_Type,Recyclable
+1.0,PET water bottle,Plastic,20,83.0,Recycling Bin,Yes
+14.0,Biscuit packet wrapper,Plastic,8,12.0,Recycling Bin,Yes
+53.0,Paper bag,Paper,15,10.0,Recycling Bin,Yes
+76.0,Glass water bottle,Glass,250,1100.0,Glass Collection,Yes
+77.0,Beer bottle,Glass,200,900.0,Glass Collection,Yes
+144.0,Used paper tea bags,Organic,3,2.0,Compost Bin,Yes
+290.0,Toffee Wrapper,Plastic,5,8.0,Recycling Bin,Yes
+291.0,Soda Can,Metal,15,50.0,Recycling Bin,Yes
+292.0,Cardboard Box,Paper,300,50.0,Recycling Bin,Yes
+293.0,Banana Peel,Organic,120,5.0,Compost Bin,Yes
+,Polythene Bag,Plastic,5,35.0,Plastic Collection,Yes (Store Drop-off)
+,Styrofoam Cup,Plastic,10,120.0,Trash Bin,No
+,Bubble Wrap,Plastic,8,45.0,Plastic Collection,Yes (Store Drop-off)
+,Pizza Box,Paper,250,60.0,Recycling Bin,Yes
+,Disposable Mask,Mixed,4,25.0,Trash Bin,No
